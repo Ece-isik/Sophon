@@ -42,7 +42,19 @@ Future<DeployedContract> get deployedGreeterContract async {
 
   return contract;
 }
+/// Get deployed customer contract
+Future<DeployedContract> get deployedCustomerContract async {
+  const String abiDirectory = 'lib/contracts/staging/customer.abi.json';
+  final String contractAddress = dotenv.get('CUSTOMER_CONTRACT_ADDRESS');
+  String contractABI = await rootBundle.loadString(abiDirectory);
 
+  final DeployedContract contract = DeployedContract(
+    ContractAbi.fromJson(contractABI, 'CustomerStorage'),
+    EthereumAddress.fromHex(contractAddress),
+  );
+
+  return contract;
+}
 /// Return web3client object.
 Web3Client get web3Client {
   return Web3Client(
