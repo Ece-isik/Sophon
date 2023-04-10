@@ -46,8 +46,8 @@ class FetchGreetingSuccess extends Web3State {
   final String message;
 }
 
-class FetchGreetingFailed extends Web3State {
-  const FetchGreetingFailed({
+class FetchingFailed extends Web3State {
+  const FetchingFailed({
     required this.errorCode,
     required this.message,
   });
@@ -56,16 +56,16 @@ class FetchGreetingFailed extends Web3State {
   final String message;
 }
 
-class UpdateGreetingLoading extends Web3State {
-  UpdateGreetingLoading();
+class TransactionLoading extends Web3State {
+  TransactionLoading();
 }
 
-class UpdateGreetingSuccess extends Web3State {
-  const UpdateGreetingSuccess();
+class TransactionSuccess extends Web3State {
+  const TransactionSuccess();
 }
 
-class UpdateGreetingFailed extends Web3State {
-  const UpdateGreetingFailed({
+class TransactionFailed extends Web3State {
+  const TransactionFailed({
     required this.errorCode,
     required this.message,
   });

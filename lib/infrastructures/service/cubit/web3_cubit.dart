@@ -26,11 +26,12 @@ class Web3Cubit extends Cubit<Web3State> {
   late WalletConnectEthereumCredentials wcCredentials;
 
   // contract-specific declarations
-  late Timer fetchGreetingTimer;
+  //keep the user interface up-to-date with the latest value on the blockchain
+  late Timer timer;
 
   /// Terminates metamask, provider, contract connections
   void closeConnection() {
-    fetchGreetingTimer.cancel();
+    timer.cancel();
     walletConnector.killSession();
     walletConnector.close();
 
@@ -49,7 +50,7 @@ class Web3Cubit extends Cubit<Web3State> {
     wcCredentials = WalletConnectEthereumCredentials(provider: provider);
 
     /// periodically fetch greeting from chain
-    fetchGreetingTimer =
+    timer =
         Timer.periodic(const Duration(seconds: 5), (_) => getBuyerContract());
 
     emit(InitializeProviderSuccess(
@@ -68,13 +69,13 @@ class Web3Cubit extends Cubit<Web3State> {
       );
       emit(FetchGreetingSuccess(message: response[0]));
     } catch (e) {
-      emit(FetchGreetingFailed(errorCode: '', message: e.toString()));
+      emit(FetchingFailed(errorCode: '', message: e.toString()));
     }
   }
 
   /// Update greeter contract with provided [text]
   Future<void> updateGreeting(String text) async {
-    emit(UpdateGreetingLoading());
+    emit(TransactionLoading());
     try {
       String txnHash = await web3Client.sendTransaction(
         wcCredentials,
@@ -93,20 +94,21 @@ class Web3Cubit extends Cubit<Web3State> {
           (_) async {
         TransactionReceipt? t = await web3Client.getTransactionReceipt(txnHash);
         if (t != null) {
-          emit(const UpdateGreetingSuccess());
+          emit(const TransactionSuccess());
           fetchGreeting();
           txnTimer.cancel();
         }
       });
     } catch (e) {
-      emit(UpdateGreetingFailed(errorCode: '', message: e.toString()));
+      emit(TransactionFailed(errorCode: '', message: e.toString()));
     }
   }
 
   /// TODO: <another> contract
-  /// You can add and specify more contracts here
+  
+  /// BUYER FUNCTIONS
    Future<void> createBuyerContract() async {
-    emit(UpdateGreetingLoading());
+    emit(TransactionLoading());
     try {
       String txnHash = await web3Client.sendTransaction(
         wcCredentials,
@@ -125,13 +127,12 @@ class Web3Cubit extends Cubit<Web3State> {
           (_) async {
         TransactionReceipt? t = await web3Client.getTransactionReceipt(txnHash);
         if (t != null) {
-          emit(const UpdateGreetingSuccess());
-          getBuyerContract();
+          emit(const TransactionSuccess());
           txnTimer.cancel();
         }
       });
     } catch (e) {
-      emit(UpdateGreetingFailed(errorCode: '', message: e.toString()));
+      emit(TransactionFailed(errorCode: '', message: e.toString()));
     }
   }
   Future<dynamic> getBuyerContract() async {
@@ -141,12 +142,228 @@ class Web3Cubit extends Cubit<Web3State> {
       function: customerContract.function(getContractFunction),
       params: <dynamic>[EthereumAddress.fromHex(sender)],
     );
-    print(response[0]); // 0xc30b9de49ac2c4ba62c1b40499cca8ad9616364c
+    print(response[0]); // contract address
     return response[0];
   } catch (e) {
-    emit(FetchGreetingFailed(errorCode: '', message: e.toString()));
+    emit(FetchingFailed(errorCode: '', message: e.toString()));
     return '';
   }
 }
+Future<dynamic> getBuyerContractBalance() async {
+  try {
+    List<dynamic> response = await web3Client.call(
+      contract: customerContract,
+      function: customerContract.function(getBalanceFunction),
+      params: <dynamic>[EthereumAddress.fromHex(sender)],
+    );
+    print(response[0]); // balance
+    return response[0];
+  } catch (e) {
+    emit(FetchingFailed(errorCode: '', message: e.toString()));
+    return '';
+  }
+}
+Future<dynamic> scanTransaction(int index) async {
+  try {
+    List<dynamic> response = await web3Client.call(
+      contract: customerContract,
+      function: customerContract.function(viewTransactionFunction),
+      params: <dynamic>[EthereumAddress.fromHex(sender), index],
+    );
+    print(response[0]); // transaction - shopping
+    return response[0];
+  } catch (e) {
+    emit(FetchingFailed(errorCode: '', message: e.toString()));
+    return '';
+  }
+}
+Future<void> payShopping() async {
+    emit(TransactionLoading());
+    List<String> sellers = List.empty(growable: true);
+    List<String> info = List.empty(growable: true);
+    List<String> prices = List.empty(growable: true);
+
+    /// fill the arrays from the basket
+    /// compare the balance wiith the total amount
+    try {
+      String txnHash = await web3Client.sendTransaction(
+        wcCredentials,
+        Transaction.callContract(
+          contract: customerContract,
+          function: customerContract.function(paymentFunction),
+          from: EthereumAddress.fromHex(sender),
+          parameters: <dynamic>[EthereumAddress.fromHex(sender), sellers, info, prices],
+        ),
+        chainId: sessionStatus.chainId,
+      );
+
+      late Timer txnTimer;
+      txnTimer = Timer.periodic(
+          Duration(milliseconds: getBlockTime(sessionStatus.chainId)),
+          (_) async {
+        TransactionReceipt? t = await web3Client.getTransactionReceipt(txnHash);
+        if (t != null) {
+          emit(const TransactionSuccess());
+          getBuyerContract();
+          txnTimer.cancel();
+        }
+      });
+    } catch (e) {
+      emit(TransactionFailed(errorCode: '', message: e.toString()));
+    }
+  }
+Future<void> requestReturn(String seller, int index) async {
+    emit(TransactionLoading());
+    try {
+      String txnHash = await web3Client.sendTransaction(
+        wcCredentials,
+        Transaction.callContract(
+          contract: customerContract,
+          function: customerContract.function(requestReturnFunction),
+          from: EthereumAddress.fromHex(sender),
+          parameters: <dynamic>[EthereumAddress.fromHex(sender), EthereumAddress.fromHex(seller), index],
+        ),
+        chainId: sessionStatus.chainId,
+      );
+
+      late Timer txnTimer;
+      txnTimer = Timer.periodic(
+          Duration(milliseconds: getBlockTime(sessionStatus.chainId)),
+          (_) async {
+        TransactionReceipt? t = await web3Client.getTransactionReceipt(txnHash);
+        if (t != null) {
+          emit(const TransactionSuccess());
+          txnTimer.cancel();
+        }
+      });
+    } catch (e) {
+      emit(TransactionFailed(errorCode: '', message: e.toString()));
+    }
+  }
+  Future<void> loadToBuyerContract(dynamic amount) async {
+    emit(TransactionLoading());
+    try {
+      String txnHash = await web3Client.sendTransaction(
+        wcCredentials, Transaction(
+          from: EthereumAddress.fromHex(sender),
+          to: await getBuyerContract(),
+          value: amount
+        ),
+        chainId: sessionStatus.chainId,
+      );
+
+      late Timer txnTimer;
+      txnTimer = Timer.periodic(
+          Duration(milliseconds: getBlockTime(sessionStatus.chainId)),
+          (_) async {
+        TransactionReceipt? t = await web3Client.getTransactionReceipt(txnHash);
+        if (t != null) {
+          emit(const TransactionSuccess());
+          txnTimer.cancel();
+        }
+      });
+    } catch (e) {
+      emit(TransactionFailed(errorCode: '', message: e.toString()));
+    }
+  }
+  /// SELLER FUNCTIONS
+  Future<void> createSellerContract() async {
+    emit(TransactionLoading());
+    try {
+      String txnHash = await web3Client.sendTransaction(
+        wcCredentials,
+        Transaction.callContract(
+          contract: customerContract,
+          function: customerContract.function(createSellerContractFunction),
+          from: EthereumAddress.fromHex(sender),
+          parameters: <dynamic>[EthereumAddress.fromHex(sender)],
+        ),
+        chainId: sessionStatus.chainId,
+      );
+
+      late Timer txnTimer;
+      txnTimer = Timer.periodic(
+          Duration(milliseconds: getBlockTime(sessionStatus.chainId)),
+          (_) async {
+        TransactionReceipt? t = await web3Client.getTransactionReceipt(txnHash);
+        if (t != null) {
+          emit(const TransactionSuccess());
+          txnTimer.cancel();
+        }
+      });
+    } catch (e) {
+      emit(TransactionFailed(errorCode: '', message: e.toString()));
+    }
+  }
+  Future<dynamic> getSellerContract() async {
+  try {
+    List<dynamic> response = await web3Client.call(
+      contract: customerContract,
+      function: customerContract.function(getSellerContractFunction),
+      params: <dynamic>[EthereumAddress.fromHex(sender)],
+    );
+    print(response[0]); // contract address
+    return response[0];
+  } catch (e) {
+    emit(FetchingFailed(errorCode: '', message: e.toString()));
+    return '';
+  }
+}
+Future<void> returnTokensToCustomer(String buyer, int index) async {
+    emit(TransactionLoading());
+    try {
+      String txnHash = await web3Client.sendTransaction(
+        wcCredentials,
+        Transaction.callContract(
+          contract: customerContract,
+          function: customerContract.function(returnTokensFunction),
+          from: EthereumAddress.fromHex(sender),
+          parameters: <dynamic>[EthereumAddress.fromHex(buyer), EthereumAddress.fromHex(sender), index],
+        ),
+        chainId: sessionStatus.chainId,
+      );
+
+      late Timer txnTimer;
+      txnTimer = Timer.periodic(
+          Duration(milliseconds: getBlockTime(sessionStatus.chainId)),
+          (_) async {
+        TransactionReceipt? t = await web3Client.getTransactionReceipt(txnHash);
+        if (t != null) {
+          emit(const TransactionSuccess());
+          txnTimer.cancel();
+        }
+      });
+    } catch (e) {
+      emit(TransactionFailed(errorCode: '', message: e.toString()));
+    }
+  }
+  Future<void> sendTokensToSeller(String buyer, int index) async {
+    emit(TransactionLoading());
+    try {
+      String txnHash = await web3Client.sendTransaction(
+        wcCredentials,
+        Transaction.callContract(
+          contract: customerContract,
+          function: customerContract.function(sendSellerFunction),
+          from: EthereumAddress.fromHex(sender),
+          parameters: <dynamic>[EthereumAddress.fromHex(buyer), EthereumAddress.fromHex(sender), index],
+        ),
+        chainId: sessionStatus.chainId,
+      );
+
+      late Timer txnTimer;
+      txnTimer = Timer.periodic(
+          Duration(milliseconds: getBlockTime(sessionStatus.chainId)),
+          (_) async {
+        TransactionReceipt? t = await web3Client.getTransactionReceipt(txnHash);
+        if (t != null) {
+          emit(const TransactionSuccess());
+          txnTimer.cancel();
+        }
+      });
+    } catch (e) {
+      emit(TransactionFailed(errorCode: '', message: e.toString()));
+    }
+  }
 
 }

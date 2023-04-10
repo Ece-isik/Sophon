@@ -169,7 +169,7 @@ void main() {
             mockWeb3Cubit,
             Stream<Web3State>.fromIterable(
               <Web3State>[
-                const FetchGreetingFailed(
+                const FetchingFailed(
                     errorCode: errorCode, message: errorMessage),
               ],
             ),

@@ -1,4 +1,4 @@
-import 'package:flutter/services.dart';
+/*import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -6,7 +6,7 @@ import 'package:sophon/internal/ethereum_credentials.dart';
 import 'package:sophon/infrastructures/service/cubit/web3_cubit.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:web3dart/web3dart.dart';
-/*
+
 class MockDeployedContract extends Mock implements DeployedContract {
   static String sampleHexString = '0x34fcc3f5423ee26d0fc23224337ba228142fa4fd';
   @override
@@ -70,7 +70,7 @@ void main() {
       const String updateText = 'Hello world';
 
       test(
-          'On success, it should trigger sendTransaction, and trigger getTransactionReceipt and emits UpdateGreetingSuccess.',
+          'On success, it should trigger sendTransaction, and trigger getTransactionReceipt and emits TransactionSuccess.',
           () async {
         when(() => mockWeb3Client.sendTransaction(any(), any(),
             chainId: any(named: 'chainId'),
@@ -99,7 +99,7 @@ void main() {
         cubit.updateGreeting(updateText);
 
         cubit.stream.listen((Web3State state) {
-          expect(state.runtimeType, UpdateGreetingSuccess);
+          expect(state.runtimeType, TransactionSuccess);
         });
 
         verify(() => mockWeb3Client.sendTransaction(any(), any(),
@@ -110,7 +110,7 @@ void main() {
     });
 
     test(
-        'On fail, it should trigger sendTransaction but throws error then it will emits UpdateGreetingFailed.',
+        'On fail, it should trigger sendTransaction but throws error then it will emits TransactionFailed.',
         () async {
       const String updateText = 'Hello world';
 
@@ -132,7 +132,7 @@ void main() {
       cubit.updateGreeting(updateText);
 
       cubit.stream.listen((Web3State state) {
-        expect(state.runtimeType, UpdateGreetingFailed);
+        expect(state.runtimeType, TransactionFailed);
       });
 
       verify(() => mockWeb3Client.sendTransaction(any(), any(),
@@ -169,7 +169,7 @@ void main() {
       });
 
       test(
-          'On fail. It should trigger call function from web3client and emits FetchGreetingFailed.',
+          'On fail. It should trigger call function from web3client and emits FetchingFailed.',
           () async {
         when(() => mockWeb3Client.call(
             contract: any(named: 'contract'),
@@ -185,7 +185,7 @@ void main() {
         cubit.fetchGreeting();
 
         cubit.stream.listen((Web3State state) {
-          expect(state.runtimeType, FetchGreetingFailed);
+          expect(state.runtimeType, FetchingFailed);
         });
         verify(() => mockWeb3Client.call(
             contract: any(named: 'contract'),

@@ -46,16 +46,62 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<Web3Cubit>().updateGreeting(greetingTextController.text);
     greetingTextController.text = '';
   }
+  // BUYER FUNCTIONS
   void createBuyerContract() {
     launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
 
     context.read<Web3Cubit>().createBuyerContract();
   }
+  void payShopping() {
+    launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
 
+    context.read<Web3Cubit>().payShopping();
+  }
+  void requestReturn() {
+    launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
+
+    // DB conn
+    context.read<Web3Cubit>().requestReturn('sellerAddr', 0);
+  }
   void getBuyerContract() {
-
     context.read<Web3Cubit>().getBuyerContract();
   }
+  void getBuyerContractBalance() {
+    context.read<Web3Cubit>().getBuyerContractBalance();
+  }
+  void scanTransaction() {
+    // DB conn
+    context.read<Web3Cubit>().scanTransaction(0);
+  }
+  void loadToBuyerContract()
+  {
+    launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
+
+    // get input for amount
+    context.read<Web3Cubit>().loadToBuyerContract(0);
+  }
+  // SELLER FUNCTIONS
+  void createSellerContract() {
+    launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
+
+    context.read<Web3Cubit>().createSellerContract();
+  }
+    void getSellerContract() {
+    context.read<Web3Cubit>().getSellerContract();
+  }
+    void returnTokensToCustomer() {
+    launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
+
+    // DB conn
+    context.read<Web3Cubit>().returnTokensToCustomer('buyerAddr', 0);
+  }
+    void sendTokensToSeller() {
+    launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
+
+    // DB conn
+    context.read<Web3Cubit>().sendTokensToSeller('buyerAddr', 0);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -85,14 +131,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
           });
-        } else if (state is UpdateGreetingFailed) {
+        } else if (state is TransactionFailed) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
               backgroundColor: Colors.red,
             ),
           );
-        } else if (state is FetchGreetingFailed) {
+        } else if (state is FetchingFailed) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -247,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               buildWhen:
                                   (Web3State previous, Web3State current) =>
                                       current is FetchGreetingSuccess ||
-                                      current is UpdateGreetingLoading,
+                                      current is TransactionLoading,
                               builder: (BuildContext context, Web3State state) {
                                 if (state is FetchGreetingSuccess) {
                                   return Text(
@@ -313,11 +359,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: BlocBuilder<Web3Cubit, Web3State>(
                               buildWhen:
                                   (Web3State previous, Web3State current) =>
-                                      current is UpdateGreetingLoading ||
-                                      current is UpdateGreetingSuccess ||
-                                      current is UpdateGreetingFailed,
+                                      current is TransactionLoading ||
+                                      current is TransactionSuccess ||
+                                      current is TransactionFailed,
                               builder: (BuildContext context, Web3State state) {
-                                if (state is UpdateGreetingLoading) {
+                                if (state is TransactionLoading) {
                                   return ElevatedButton.icon(
                                     onPressed: () {},
                                     style: buttonStyle,
