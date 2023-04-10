@@ -12,11 +12,13 @@ class Web3Cubit extends Cubit<Web3State> {
   Web3Cubit({
     required this.web3Client,
     required this.greeterContract,
+    required this.customerContract,
   }) : super(const Web3State());
 
   // core declarations
   final Web3Client web3Client;
   final DeployedContract greeterContract;
+  final DeployedContract customerContract;
   late String sender;
   late SessionStatus sessionStatus;
   late EthereumWalletConnectProvider provider;
@@ -48,7 +50,7 @@ class Web3Cubit extends Cubit<Web3State> {
 
     /// periodically fetch greeting from chain
     fetchGreetingTimer =
-        Timer.periodic(const Duration(seconds: 5), (_) => fetchGreeting());
+        Timer.periodic(const Duration(seconds: 5), (_) => getBuyerContract());
 
     emit(InitializeProviderSuccess(
         accountAddress: sender, networkName: getNetworkName(session.chainId)));
@@ -103,4 +105,48 @@ class Web3Cubit extends Cubit<Web3State> {
 
   /// TODO: <another> contract
   /// You can add and specify more contracts here
+   Future<void> createBuyerContract() async {
+    emit(UpdateGreetingLoading());
+    try {
+      String txnHash = await web3Client.sendTransaction(
+        wcCredentials,
+        Transaction.callContract(
+          contract: customerContract,
+          function: customerContract.function(createContractFunction),
+          from: EthereumAddress.fromHex(sender),
+          parameters: <dynamic>[EthereumAddress.fromHex(sender)],
+        ),
+        chainId: sessionStatus.chainId,
+      );
+
+      late Timer txnTimer;
+      txnTimer = Timer.periodic(
+          Duration(milliseconds: getBlockTime(sessionStatus.chainId)),
+          (_) async {
+        TransactionReceipt? t = await web3Client.getTransactionReceipt(txnHash);
+        if (t != null) {
+          emit(const UpdateGreetingSuccess());
+          getBuyerContract();
+          txnTimer.cancel();
+        }
+      });
+    } catch (e) {
+      emit(UpdateGreetingFailed(errorCode: '', message: e.toString()));
+    }
+  }
+  Future<dynamic> getBuyerContract() async {
+  try {
+    List<dynamic> response = await web3Client.call(
+      contract: customerContract,
+      function: customerContract.function(getContractFunction),
+      params: <dynamic>[EthereumAddress.fromHex(sender)],
+    );
+    print(response[0]); // 0xc30b9de49ac2c4ba62c1b40499cca8ad9616364c
+    return response[0];
+  } catch (e) {
+    emit(FetchGreetingFailed(errorCode: '', message: e.toString()));
+    return '';
+  }
+}
+
 }

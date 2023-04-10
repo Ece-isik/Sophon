@@ -46,7 +46,16 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<Web3Cubit>().updateGreeting(greetingTextController.text);
     greetingTextController.text = '';
   }
+  void createBuyerContract() {
+    launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
 
+    context.read<Web3Cubit>().createBuyerContract();
+  }
+
+  void getBuyerContract() {
+
+    context.read<Web3Cubit>().getBuyerContract();
+  }
   @override
   void initState() {
     super.initState();
@@ -323,9 +332,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   );
                                 }
                                 return ElevatedButton.icon(
-                                  onPressed: updateGreeting,
+                                  onPressed: getBuyerContract,
                                   icon: const Icon(Icons.edit),
-                                  label: const Text('Update Greeting'),
+                                  label: const Text('Create Contract'),
                                   style: buttonStyle,
                                 );
                               },

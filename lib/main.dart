@@ -20,6 +20,7 @@ Future<void> main() async {
     MyApp(
       walletConnect: await walletConnect,
       greeterContract: await deployedGreeterContract,
+      customerContract: await deployedCustomerContract,
       web3client: web3Client,
     ),
   );
@@ -29,13 +30,15 @@ class MyApp extends StatelessWidget {
   const MyApp({
     required this.walletConnect,
     required this.greeterContract,
+    required this.customerContract,
     required this.web3client,
     Key? key,
   }) : super(key: key);
   final WalletConnect walletConnect;
   final DeployedContract greeterContract;
+  final DeployedContract customerContract;
   final Web3Client web3client;
-
+  
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
@@ -44,6 +47,7 @@ class MyApp extends StatelessWidget {
           create: (BuildContext context) => Web3Cubit(
             web3Client: web3client,
             greeterContract: greeterContract,
+            customerContract: customerContract,
           ),
         ),
         BlocProvider<AuthCubit>(
