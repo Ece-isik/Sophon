@@ -6,8 +6,9 @@ import 'package:sophon/infrastructures/service/cubit/web3_cubit.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:postgres/postgres.dart'; // postgres SQL
 import 'package:sophon/configs/themes.dart';
+import 'package:web3dart/web3dart.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -29,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String accountAddress = '';
   String networkName = '';
   TextEditingController greetingTextController = TextEditingController();
-
+  
   ButtonStyle buttonStyle = ButtonStyle(
     elevation: MaterialStateProperty.all(0),
     backgroundColor: MaterialStateProperty.all(
@@ -40,12 +41,41 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
 
-  void updateGreeting() {
+// Database connection object
+var connection = PostgreSQLConnection(
+  '10.0.2.2', 5432, 'GeekchainDB', username: 'postgres', password: '1234');
+
+ void connectDB() async{
+    try {
+    await connection.query('SELECT 1');
+    print('Connection is already open.');
+  } catch (_) {
+    await connection.open();
+    print('Connection opened successfully!');
+  }
+  List<Map<String, Map<String, dynamic>>> result = await connection
+    .mappedResultsQuery('SELECT * FROM public.users WHERE fname = @aName',
+         substitutionValues: {
+       'aName': 'asgd',
+       });
+
+
+  if (result.length == 1) {
+     for (var element in result) {
+      print(result);
+       var _users = element.values.toList();
+         //Users user = Users.fromJson(_users[0]);
+     }
+   }
+ }
+
+  /*void updateGreeting() {
     launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
 
     context.read<Web3Cubit>().updateGreeting(greetingTextController.text);
     greetingTextController.text = '';
-  }
+  }*/
+
   // BUYER FUNCTIONS
   void createBuyerContract() {
     launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
@@ -78,7 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
     launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
 
     // get input for amount
-    context.read<Web3Cubit>().loadToBuyerContract(0);
+    var amount = EtherAmount.inWei(BigInt.from(100));
+    context.read<Web3Cubit>().loadToBuyerContract(amount);
   }
   // SELLER FUNCTIONS
   void createSellerContract() {
@@ -378,9 +409,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   );
                                 }
                                 return ElevatedButton.icon(
-                                  onPressed: getBuyerContract,
+                                  onPressed: getBuyerContractBalance,
                                   icon: const Icon(Icons.edit),
-                                  label: const Text('Create Contract'),
+                                  label: const Text('Get balance'),
                                   style: buttonStyle,
                                 );
                               },
