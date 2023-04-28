@@ -53,22 +53,33 @@ var connection = PostgreSQLConnection(
     await connection.open();
     print('Connection opened successfully!');
   }
+  saveWalletAddress(1);
+ }
+ dynamic sellerAddressQuery(int row) async
+ {
   List<Map<String, Map<String, dynamic>>> result = await connection
-    .mappedResultsQuery('SELECT * FROM public.users WHERE fname = @aName',
+    .mappedResultsQuery('SELECT s.walletaddress FROM public.history h JOIN public.seller s ON h.sellerid = s.id WHERE h.row = @aRow',
          substitutionValues: {
-       'aName': 'asgd',
+       'aRow': row,
        });
 
 
   if (result.length == 1) {
      for (var element in result) {
-      print(result);
-       var _users = element.values.toList();
-         //Users user = Users.fromJson(_users[0]);
+      print(result);         
      }
    }
+   return result;
  }
-
+void saveWalletAddress(int id) async
+{
+    List<Map<String, Map<String, dynamic>>> result = await connection
+    .mappedResultsQuery('UPDATE public.customer SET walletaddress = @aAddress WHERE id = @aID',
+         substitutionValues: {
+       'aAddress': accountAddress,
+       'aID': id,
+       });
+}
   /*void updateGreeting() {
     launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
 
@@ -87,11 +98,10 @@ var connection = PostgreSQLConnection(
 
     context.read<Web3Cubit>().payShopping();
   }
-  void requestReturn() {
-    launchUrlString(widget.uri, mode: LaunchMode.externalApplication);
-
-    // DB conn
-    context.read<Web3Cubit>().requestReturn('sellerAddr', 0);
+  void requestReturn(int row) {
+    launchUrlString(widget.uri, mode: LaunchMode.externalApplication);  
+    
+    context.read<Web3Cubit>().requestReturn(sellerAddressQuery(row), row);
   }
   void getBuyerContract() {
     context.read<Web3Cubit>().getBuyerContract();
@@ -409,7 +419,7 @@ var connection = PostgreSQLConnection(
                                   );
                                 }
                                 return ElevatedButton.icon(
-                                  onPressed: getBuyerContractBalance,
+                                  onPressed: connectDB,
                                   icon: const Icon(Icons.edit),
                                   label: const Text('Get balance'),
                                   style: buttonStyle,
